@@ -1,0 +1,128 @@
+{
+  "name": "Chatbot Web - Asisten Jaringan Komputer",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "Halo! Saya Asisten Jaringan Komputer. Tanyakan apa saja seputar dasar jaringan komputer, misalnya subnetting, DNS, DHCP, atau model OSI.",
+        "options": {
+          "allowedOrigins": "*",
+          "inputPlaceholder": "Ketik pertanyaanmu di sini...",
+          "loadPreviousSession": "notSupported",
+          "subtitle": "Tanya seputar dasar jaringan komputer",
+          "title": "Asisten Jaringan Komputer"
+        }
+      },
+      "id": "09d6e41f-731b-4aaa-8be0-5035debe175b",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "b2000000-0000-4000-8000-0000000000aa"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "Kamu adalah Asisten Jaringan Komputer, chatbot yang membantu mahasiswa memahami dasar-dasar jaringan komputer.\n\nCakupan topik yang boleh kamu jawab: model OSI dan TCP/IP, alamat IP (IPv4 dan IPv6), subnetting, DNS, DHCP, routing dan switching, VLAN, NAT, firewall dasar, topologi jaringan, perangkat jaringan, serta langkah dasar troubleshooting jaringan.\n\nAturan:\n1. Jawab hanya pertanyaan yang masih berada dalam cakupan jaringan komputer.\n2. Jika pertanyaan di luar cakupan, tolak dengan sopan dalam satu atau dua kalimat, lalu berikan satu contoh pertanyaan yang bisa kamu jawab, misalnya \"Apa perbedaan switch dan router?\".\n3. Jawab dalam Bahasa Indonesia yang jelas, singkat, dan mudah dipahami mahasiswa. Gunakan contoh sederhana atau langkah bernomor bila perlu.\n4. Jika informasi kurang lengkap, ajukan satu pertanyaan klarifikasi sebelum menjawab.\n5. Jangan mengarang. Jika tidak yakin, katakan terus terang bahwa kamu tidak yakin.\n6. Manfaatkan riwayat percakapan terakhir agar jawaban tetap nyambung dengan pertanyaan sebelumnya."
+        }
+      },
+      "id": "e120b010-037f-4fe0-b4b1-8d9528e84579",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        304,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.8-flash",
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "0439ca8b-0445-4691-9772-b77b3679de29",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        224,
+        240
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "KpS0OsR984EL3Rr4",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "aabf57b7-bd1c-4053-928d-804f965e8f65",
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        400,
+        240
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "aab81360-f7d9-4f86-b6eb-d5d250641be0",
+  "meta": {
+    "instanceId": "dc96f10ae7dc95d3c138575ba243a0a167923dbcb524841d451aadf9135d5fb3"
+  },
+  "nodeGroups": [],
+  "id": "6mmk5war6nupYBjX",
+  "tags": []
+}
