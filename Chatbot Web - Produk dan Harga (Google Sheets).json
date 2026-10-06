@@ -1,0 +1,161 @@
+{
+  "name": "Chatbot Web - Produk dan Harga (Google Sheets)",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "Kamu adalah asisten penjualan yang menjawab pertanyaan pelanggan tentang produk dan harga.\n\nAturan:\n1. Selalu gunakan tool \"Get row(s) in sheet in Google Sheets\" untuk mengambil data produk dan harga sebelum menjawab.\n2. Jawab hanya berdasarkan data yang ada di sheet. Jangan mengarang produk, harga, atau stok.\n3. Jika produk yang ditanyakan tidak ada di sheet, sampaikan bahwa produk tersebut tidak tersedia dan tawarkan produk lain yang mirip.\n4. Tampilkan harga dalam format Rupiah, misalnya Rp1.500.000.\n5. Jawab dalam bahasa Indonesia yang ramah, jelas, dan singkat.\n6. Jika pertanyaan di luar topik produk dan harga, tolak dengan sopan dan arahkan kembali ke topik produk dan harga."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        304,
+        0
+      ],
+      "id": "78305621-60f6-4f23-9669-0e81f66c76cd",
+      "name": "AI Agent",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 5
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.8-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        160,
+        272
+      ],
+      "id": "aa2f076c-63ad-418f-adb2-69d244e06798",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "KpS0OsR984EL3Rr4",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        320,
+        272
+      ],
+      "id": "b43073d1-783e-4889-815a-498404d86b84",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1ku-SWZNjTSja-By0IxiyDu_fb8R-Uo_1Yhu2-y0hVI0",
+          "mode": "list",
+          "cachedResultName": "Copy of n8n 2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ku-SWZNjTSja-By0IxiyDu_fb8R-Uo_1Yhu2-y0hVI0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.5,
+      "position": [
+        480,
+        272
+      ],
+      "id": "7d87d28e-bf08-48d8-a0ec-d272e1d783f1",
+      "name": "Get row(s) in sheet in Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Ra8OutKbZGKnzWsg",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "Halo! Saya asisten produk dan harga. Mau tanya apa hari ini?",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        0
+      ],
+      "id": "98ab1499-5840-473c-a06c-21f8a9241536",
+      "name": "When chat message received",
+      "webhookId": "6c42d005-4bd6-4368-9684-d81cda9758f6"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "f8a18afd-2d74-4c55-9b0f-297bf2657c44",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "dc96f10ae7dc95d3c138575ba243a0a167923dbcb524841d451aadf9135d5fb3"
+  },
+  "nodeGroups": [],
+  "id": "z3PzU7mlDKKlrwuc",
+  "tags": []
+}
