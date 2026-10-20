@@ -1,0 +1,278 @@
+{
+  "name": "Otomasi Invoice Klien",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Form Invoice Klien",
+        "formDescription": "Isi data berikut untuk membuat invoice otomatis.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Nama Klien",
+              "placeholder": "Contoh: PT Maju Jaya",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Jam Kerja",
+              "fieldType": "number",
+              "placeholder": "Contoh: 10",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Rate per jam",
+              "fieldType": "number",
+              "placeholder": "Contoh: 150000",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email Klien",
+              "fieldType": "email",
+              "placeholder": "klien@email.com",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c7f83dfd-e91c-43d3-a203-ef400152baa9",
+      "name": "On form submission",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        256,
+        112
+      ],
+      "webhookId": "5d4d5789-af1d-4a92-a3cf-d1abfb2e73dd"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "252ae5db-0af0-43a0-9faf-7b2ce418a65d",
+              "name": "nama_klien",
+              "value": "={{ $json['Nama Klien'] }}",
+              "type": "string"
+            },
+            {
+              "id": "6abd426c-8b78-4af0-9820-6b6228c1e974",
+              "name": "email_klien",
+              "value": "={{ $json['Email Klien'] }}",
+              "type": "string"
+            },
+            {
+              "id": "30857ede-ac8b-42c9-a53b-1f923f19d84b",
+              "name": "jam_kerja",
+              "value": "={{ Number($json['Jam Kerja']) }}",
+              "type": "number"
+            },
+            {
+              "id": "db2472e3-d0e0-447e-9202-204ddfa44595",
+              "name": "rate_per_jam",
+              "value": "={{ Number($json['Rate per jam']) }}",
+              "type": "number"
+            },
+            {
+              "id": "49a5a34a-27c7-4e4f-bb04-614bc334a3af",
+              "name": "rate_idr",
+              "value": "={{ new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number($json['Rate per jam'])) }}",
+              "type": "string"
+            },
+            {
+              "id": "2d70339a-31be-49dd-858b-29c70ba0d27e",
+              "name": "total_biaya",
+              "value": "={{ Number($json['Jam Kerja']) * Number($json['Rate per jam']) }}",
+              "type": "number"
+            },
+            {
+              "id": "8608df74-9094-456b-943e-20d3565c190d",
+              "name": "total_biaya_idr",
+              "value": "={{ new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number($json['Jam Kerja']) * Number($json['Rate per jam'])) }}",
+              "type": "string"
+            },
+            {
+              "id": "08afcc66-b8d6-486b-90e6-c2e69c0f92fd",
+              "name": "nomor_invoice",
+              "value": "={{ 'INV-' + $now.toFormat('yyyyLLdd-HHmmss') }}",
+              "type": "string"
+            },
+            {
+              "id": "e2818f85-709b-41df-bbe4-c3d2b471a56e",
+              "name": "tanggal_invoice",
+              "value": "={{ $now.setLocale('id').toFormat('dd LLLL yyyy') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "17f41127-327d-43e4-870f-24ba8ab463fc",
+      "name": "Edit Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        496,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "html": "<!DOCTYPE html>\n<html lang=\"id\">\n<head>\n<meta charset=\"UTF-8\">\n<title>Invoice {{ $json.nomor_invoice }}</title>\n<style>\nbody { font-family: Arial, sans-serif; color: #222; margin: 40px; }\nh1 { margin: 0; color: #1a56db; }\n.info { margin: 24px 0; }\ntable { width: 100%; border-collapse: collapse; }\nth, td { border: 1px solid #ccc; padding: 10px; text-align: left; }\nth { background: #1a56db; color: #fff; }\n.total { text-align: right; font-size: 18px; margin-top: 20px; }\n.footer { margin-top: 40px; font-size: 12px; color: #666; }\n</style>\n</head>\n<body>\n<h1>INVOICE</h1>\n<p>\n  No. Invoice: {{ $json.nomor_invoice }}<br>\n  Tanggal: {{ $json.tanggal_invoice }}\n</p>\n<div class=\"info\">\n  <strong>Ditagihkan kepada:</strong><br>\n  {{ $json.nama_klien }}<br>\n  {{ $json.email_klien }}\n</div>\n<h3>Detail Tagihan</h3>\n<table>\n  <tr>\n    <th>Deskripsi</th>\n    <th>Jam Kerja</th>\n    <th>Rate per Jam</th>\n    <th>Subtotal</th>\n  </tr>\n  <tr>\n    <td>Jasa profesional</td>\n    <td>{{ $json.jam_kerja }} jam</td>\n    <td>{{ $json.rate_idr }}</td>\n    <td>{{ $json.total_biaya_idr }}</td>\n  </tr>\n</table>\n<p class=\"total\"><strong>Total Biaya: {{ $json.total_biaya_idr }}</strong></p>\n<p class=\"footer\">\n  Terima kasih atas kepercayaan Anda. Dokumen ini dibuat otomatis oleh sistem.\n</p>\n</body>\n</html>"
+      },
+      "id": "c8e56634-6294-4997-b32c-8ded84cb748c",
+      "name": "HTML",
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        736,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.pdfshift.io/v3/convert/pdf",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "sk_e06635092e49af19268627b558c84fcda1f8fb0f"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { source: $json.html, sandbox: true } }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "20b4c85f-6c63-4543-af5b-207decb4c02d",
+      "name": "Konversi HTML ke PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        976,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst nomor = $('Edit Fields').first().json.nomor_invoice;\nitem.binary.data.fileName = nomor + '.pdf';\nitem.binary.data.mimeType = 'application/pdf';\nitem.binary.data.fileExtension = 'pdf';\nreturn item;"
+      },
+      "id": "c647b36b-486c-4b27-90d4-f6d58cc5a9cc",
+      "name": "Beri Nama File PDF",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1216,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Edit Fields').first().json.email_klien }}",
+        "subject": "=Invoice {{ $('Edit Fields').first().json.nomor_invoice }} - Konfirmasi Tagihan",
+        "message": "=<p>Halo {{ $('Edit Fields').first().json.nama_klien }},</p><p>Terima kasih sudah menggunakan jasa kami. Berikut kami lampirkan invoice dengan nomor <b>{{ $('Edit Fields').first().json.nomor_invoice }}</b> sebesar <b>{{ $('Edit Fields').first().json.total_biaya_idr }}</b>.</p><p>Silakan cek file PDF yang terlampir. Kalau ada yang kurang jelas, balas saja email ini ya.</p><p>Salam hangat,<br>Anfasa</p>",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          }
+        }
+      },
+      "id": "df94ca45-5b2d-4fde-b0aa-6d2446fce1b7",
+      "name": "Kirim Invoice via Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1456,
+        112
+      ],
+      "webhookId": "b84a1c12-918a-49f7-a697-41d33564bc1e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "eWAGU9Ekj8CxPfFO",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Konversi HTML ke PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konversi HTML ke PDF": {
+      "main": [
+        [
+          {
+            "node": "Beri Nama File PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Beri Nama File PDF": {
+      "main": [
+        [
+          {
+            "node": "Kirim Invoice via Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "231fee9d-6585-41a6-bc88-a33be6f5a5c6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "dc96f10ae7dc95d3c138575ba243a0a167923dbcb524841d451aadf9135d5fb3"
+  },
+  "nodeGroups": [],
+  "id": "VNo6lO7XnsunQwgc",
+  "tags": []
+}
