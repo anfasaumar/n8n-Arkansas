@@ -1,0 +1,317 @@
+{
+  "name": "Tugas 6 - Deteksi Phishing Email",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {},
+        "options": {}
+      },
+      "id": "10deea25-621e-46e3-9ec7-418ac88b20dd",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        160
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "eWAGU9Ekj8CxPfFO",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "b2000001-0000-4000-8000-000000000001",
+                    "leftValue": "={{ $json.from.value[0].address }}",
+                    "rightValue": "@([a-z0-9-]+\\.)*(nurulfikri\\.ac\\.id|linkedin\\.com||google\\.com|accounts\\.google\\.com|github\\.com|n8n\\.io|anthropic\\.com)$",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Trusted"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Untrusted"
+        }
+      },
+      "id": "fc367062-1e1b-40d3-82b3-dd3de3f05c58",
+      "name": "Allowlist",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        272,
+        160
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "4fdedc88-7bc0-4e2f-9208-60b255635f8a",
+      "name": "Lewati (Domain Terpercaya)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        528,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Kamu adalah seorang analis keamanan siber yang ahli mendeteksi email phishing.\n\nAnalisis email berikut dan nilai tingkat risiko phishing-nya dengan skala 1-10:\n1-3 = aman, 4-6 = mencurigakan ringan, 7-10 = sangat berisiko phishing.\n\nPertimbangkan: kecocokan nama pengirim dengan domain, nada mendesak/mengancam, link mencurigakan atau typo domain, permintaan data sensitif (password, OTP, rekening), lampiran tidak wajar, dan tata bahasa yang janggal.\n\nDATA EMAIL:\nPengirim: {{ $json.from.text }}\nSubjek: {{ $json.subject }}\nIsi: {{ ($json.text || $json.snippet || '').substring(0, 3000) }}\n\nFORMAT JAWABAN (wajib persis seperti ini):\nSKOR: <angka 1-10>\nALASAN: <maksimal 2 kalimat singkat dalam Bahasa Indonesia>"
+      },
+      "id": "50cb8706-066a-4cbe-8d8e-3631c871ec7b",
+      "name": "Analis Keamanan AI",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        528,
+        288
+      ],
+      "retryOnFail": true,
+      "maxTries": 3
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.8-flash",
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "id": "c1448ac5-494f-422f-9aae-25d1278b93e2",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        544,
+        512
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "KpS0OsR984EL3Rr4",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Ekstrak skor risiko (1-10) dari respons teks AI\nconst aiText = $json.text || '';\nconst email = $('Gmail Trigger').item.json;\n\n// Prioritas 1: pola \"SKOR: 8\"; Prioritas 2: angka 1-10 pertama di teks\nlet match = aiText.match(/SKOR\\s*[:=]\\s*(10|[1-9])\\b/i) || aiText.match(/\\b(10|[1-9])\\b/);\n\nlet score;\nlet parsed = true;\nif (match) {\n  score = parseInt(match[1], 10);\n} else {\n  // Fail-safe: jika skor tidak terbaca, anggap berisiko agar ditinjau manusia\n  score = 7;\n  parsed = false;\n}\n\nconst reasonMatch = aiText.match(/ALASAN\\s*[:=]\\s*([\\s\\S]*)/i);\n\nreturn {\n  json: {\n    emailId: email.id,\n    from: email.from?.text || '',\n    subject: email.subject || '',\n    riskScore: score,\n    scoreParsed: parsed,\n    reason: reasonMatch ? reasonMatch[1].trim() : aiText.trim(),\n    aiRaw: aiText\n  }\n};"
+      },
+      "id": "4b573ddb-4d8d-4382-88d7-d1fdf564ff33",
+      "name": "Ekstrak Skor Risiko",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c3000001-0000-4000-8000-000000000001",
+              "leftValue": "={{ $json.riskScore }}",
+              "rightValue": 6,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "751ff112-d6a0-4ba6-8bbe-f7043af9428e",
+      "name": "Skor > 6?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1152,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.emailId }}",
+        "labelIds": [
+          "Label_1562362060931232566"
+        ]
+      },
+      "id": "ee6aa5c9-09ad-4658-bfb0-bb011ac88716",
+      "name": "Label Phishing di Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1408,
+        192
+      ],
+      "webhookId": "de202213-1e00-4c50-92f3-aafd7bcaf24c",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "eWAGU9Ekj8CxPfFO",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7327346678",
+        "text": "=⚠️ TINJAUAN EMAIL (Skor Risiko: {{ $json.riskScore }}/10)\n\nDari: {{ $json.from }}\nSubjek: {{ $json.subject }}\nAlasan AI: {{ $json.reason }}\n\nEmail ini TIDAK dilabeli Phishing dan TIDAK dihapus. Mohon dicek manual (Human-in-the-Loop).",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "39ef0a46-61d3-4218-a2ca-34e2027f751f",
+      "name": "Notifikasi Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1408,
+        384
+      ],
+      "webhookId": "dd713130-0116-4a3a-8817-640e01718829",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZpQXRsAFRRzsUu3i",
+          "name": "Telegram account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Allowlist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Allowlist": {
+      "main": [
+        [
+          {
+            "node": "Lewati (Domain Terpercaya)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Analis Keamanan AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Analis Keamanan AI",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analis Keamanan AI": {
+      "main": [
+        [
+          {
+            "node": "Ekstrak Skor Risiko",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ekstrak Skor Risiko": {
+      "main": [
+        [
+          {
+            "node": "Skor > 6?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skor > 6?": {
+      "main": [
+        [
+          {
+            "node": "Label Phishing di Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notifikasi Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "fcf14986-92be-4ec3-9620-cb65d6479e95",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "dc96f10ae7dc95d3c138575ba243a0a167923dbcb524841d451aadf9135d5fb3"
+  },
+  "nodeGroups": [],
+  "id": "nxNtfmiOScBKrwzu",
+  "tags": []
+}
