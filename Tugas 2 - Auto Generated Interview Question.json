@@ -1,0 +1,367 @@
+{
+  "name": "Tugas 2 - Auto Generated Interview Question",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "ccc5fed5-384a-4921-9334-8daad3cedb04",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        5104,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Data Dummy: simulasi data kandidat (Run Once for All Items)\nconst candidates = [\n  {\n    candidate_name: \"Andi Pratama\",\n    position: \"Network Engineer\",\n    claimed_skills: [\"MikroTik RouterOS\", \"OSPF\", \"BGP\", \"VLAN\", \"Wireshark\"],\n    past_company_type: \"ISP skala menengah\"\n  },\n  {\n    candidate_name: \"Siti Rahma\",\n    position: \"Network Security Analyst\",\n    claimed_skills: [\"Firewall\", \"IDS/IPS\", \"Incident Response\", \"SIEM\", \"Linux Hardening\"],\n    past_company_type: \"Startup e-commerce\"\n  }\n];\n\nreturn candidates.map(c => ({ json: c }));"
+      },
+      "id": "216a199e-4933-4e1c-a265-552e29573d7e",
+      "name": "Data Dummy",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5328,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "32b8b38c-3985-4445-b47f-467c98ceacb6",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        5552,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Prompt Builder: menyusun System Prompt + User Prompt dari profil kandidat\nconst c = $input.item.json;\nconst skills = Array.isArray(c.claimed_skills) ? c.claimed_skills.join(\", \") : c.claimed_skills;\n\nconst system_prompt = [\n  \"You are a Senior Technical Interviewer with more than 10 years of hands-on experience.\",\n  \"Your task is to create exactly ONE technical case-study question (troubleshooting scenario) for a job candidate.\",\n  \"Rules:\",\n  \"1. The scenario must be realistic and based on the candidate's claimed skills.\",\n  \"2. Compare the claimed skills with the type of company where the candidate previously worked, then probe the depth of their real experience.\",\n  \"3. The question must require step-by-step technical reasoning, not a definition or a yes/no answer.\",\n  \"4. Write the output in Bahasa Indonesia.\",\n  \"5. Output format:\",\n  \"Topik: <short topic>\",\n  \"Pertanyaan: <the case-study question>\",\n  \"6. Do not add any greeting, explanation, or answer key.\"\n].join(\"\\n\");\n\nconst user_prompt = [\n  \"Candidate Name: \" + c.candidate_name,\n  \"Position Applied: \" + c.position,\n  \"Claimed Skills: \" + skills,\n  \"Past Company Type: \" + c.past_company_type,\n  \"\",\n  \"Generate one technical case-study question for this candidate.\"\n].join(\"\\n\");\n\nreturn {\n  json: {\n    candidate_name: c.candidate_name,\n    position: c.position,\n    claimed_skills: c.claimed_skills,\n    past_company_type: c.past_company_type,\n    system_prompt,\n    user_prompt\n  }\n};"
+      },
+      "id": "ae8a8ed3-9612-4efc-931b-5b4cf988cb81",
+      "name": "Prompt Builder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5792,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.user_prompt }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "={{ $json.system_prompt }}"
+            }
+          ]
+        }
+      },
+      "id": "1f666ca6-4747-4709-b190-c41695d2959f",
+      "name": "Generate Pertanyaan",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        6032,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash",
+        "options": {
+          "temperature": 0.4
+        }
+      },
+      "id": "65a0bff3-4ff7-4cdf-8c40-ee9a6a8f438a",
+      "name": "Gemini Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        6048,
+        992
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "KpS0OsR984EL3Rr4",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7327346678",
+        "text": "=📋 PERTANYAAN WAWANCARA\n👤 Kandidat: {{ $('Prompt Builder').item.json.candidate_name }}\n💼 Posisi: {{ $('Prompt Builder').item.json.position }}\n\n{{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "16c763e1-3df9-42a8-b05a-e9ccb5acea90",
+      "name": "Telegram Pertanyaan",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        6368,
+        768
+      ],
+      "webhookId": "5f6ab72c-b837-4587-b52c-9bda16644c0b",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZpQXRsAFRRzsUu3i",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Mock Jawaban: mensimulasikan jawaban kandidat (teknis vs generik) dengan if-else\nconst base = $('Prompt Builder').item.json;\nconst question = $('Generate Pertanyaan').item.json.text;\n\nlet answer;\nif (base.candidate_name === \"Andi Pratama\") {\n  // Skenario 1: jawaban teknis & mendalam (menyebut command, filter, TTL, solusi)\n  answer =\n    \"Karena loss hanya pada blok IP via Upstream A, saya fokus ke jalur dan BGP Upstream A. \" +\n    \"Cek session BGP dengan /routing bgp session print (RouterOS v6: /routing bgp peer print status): state Established, uptime, prefix count; uptime pendek berarti flapping, lalu /log print where topics~bgp untuk alasan reset (misalnya hold timer expired). \" +\n    \"Cek /ip route print where dst-address=<blok IP> untuk melihat apakah best path berpindah antara Upstream A dan B. \" +\n    \"OSPF: /routing ospf neighbor print (state Full, MTU mismatch, dead timer) dan /interface print stats untuk error counter di VLAN 200. \" +\n    \"Dari PC pelanggan saya traceroute berulang; hop acak dan TTL yang berfluktuasi menandakan routing loop atau asymmetric routing. \" +\n    \"Dengan Wireshark atau /tool sniffer di interface Upstream A saya pakai filter icmp.type == 11, tcp.analysis.retransmission, dan bgp, serta membandingkan ip.ttl antar paket. \" +\n    \"Solusi: perbaiki MTU atau link yang bermasalah, atur BGP timer dan route-flap dampening, pakai local-pref atau AS-path prepend agar trafik konsisten lewat satu upstream, rapikan route filter dan redistribusi BGP-OSPF agar tidak loop, lalu verifikasi dengan traceroute, pantau 24 jam, dan dokumentasikan sebagai post-mortem.\";\n} else {\n  // Skenario 2: jawaban generik & dangkal\n  answer = \"Saya akan memeriksa masalahnya dulu, lalu restart perangkat dan cek kabel. \" +\n    \"Kalau belum bisa, saya tanya rekan tim atau cari solusinya di internet. \" +\n    \"Intinya saya akan berusaha semaksimal mungkin dan bekerja dengan teliti.\";\n}\n\nreturn {\n  json: {\n    candidate_name: base.candidate_name,\n    position: base.position,\n    claimed_skills: base.claimed_skills,\n    past_company_type: base.past_company_type,\n    question,\n    answer\n  }\n};"
+      },
+      "id": "0b32e0eb-052f-46f2-837a-509ff66bae12",
+      "name": "Mock Jawaban",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6608,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Evaluator: menyusun prompt penilaian (skor 0-100, analisa, keputusan)\nconst d = $input.item.json;\n\nconst system_prompt = [\n  \"ROLE: You are a Senior Hiring Manager evaluating a technical interview answer.\",\n  \"Evaluate objectively using this rubric:\",\n  \"- If the answer shows deep troubleshooting steps, specific tools or commands, a logical order of investigation, and root-cause thinking, give a HIGH score (75-100).\",\n  \"- If the answer is partially technical but misses important steps or details, give a MEDIUM score (50-74).\",\n  \"- If the answer is generic, vague, only says restart or ask someone or search the internet, with no technical detail, give a LOW score (0-49).\",\n  \"The pass mark is 70.\",\n  \"Write the output in Bahasa Indonesia, using EXACTLY this format and nothing else:\",\n  \"🎯 Skor: <number 0-100>/100\",\n  \"💡 Analisa: <short analysis, maximum 3 sentences>\",\n  \"🔬 Kedalaman: <Teknis atau Umum>\",\n  \"🚩 Keputusan: <LULUS atau TIDAK LULUS>\"\n].join(\"\\n\");\n\nconst user_prompt = [\n  \"Position: \" + d.position,\n  \"Question Given:\",\n  d.question,\n  \"\",\n  \"Candidate Answer:\",\n  d.answer,\n  \"\",\n  \"Evaluate the answer now.\"\n].join(\"\\n\");\n\nreturn {\n  json: {\n    candidate_name: d.candidate_name,\n    position: d.position,\n    question: d.question,\n    answer: d.answer,\n    system_prompt,\n    user_prompt\n  }\n};"
+      },
+      "id": "88c53fb9-dd5c-4a7e-85d6-14f5fa896c4e",
+      "name": "Evaluator",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6848,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.user_prompt }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "={{ $json.system_prompt }}"
+            }
+          ]
+        }
+      },
+      "id": "ad2bd4da-11b5-4d80-b1d3-a61dd62ba88a",
+      "name": "Evaluator Prompt",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        7088,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash",
+        "options": {
+          "temperature": 0.4
+        }
+      },
+      "id": "2b0a8f52-2013-4196-8410-8178da587278",
+      "name": "Gemini Model Evaluator",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        7104,
+        992
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "KpS0OsR984EL3Rr4",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7327346678",
+        "text": "=📊 HASIL EVALUASI KANDIDAT\n👤 Kandidat: {{ $('Evaluator').item.json.candidate_name }}\n💼 Posisi: {{ $('Evaluator').item.json.position }}\n\n❓ Pertanyaan:\n{{ $('Evaluator').item.json.question }}\n\n✍️ Jawaban Kandidat:\n{{ $('Evaluator').item.json.answer }}\n\n{{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "304017c5-31eb-49f0-a874-152f9c910370",
+      "name": "Telegram Hasil",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        7424,
+        768
+      ],
+      "webhookId": "9ff8be91-465c-4d3e-a907-bda2d9095e37",
+      "credentials": {
+        "telegramApi": {
+          "id": "ZpQXRsAFRRzsUu3i",
+          "name": "Telegram account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Data Dummy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Dummy": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Prompt Builder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prompt Builder": {
+      "main": [
+        [
+          {
+            "node": "Generate Pertanyaan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Pertanyaan": {
+      "main": [
+        [
+          {
+            "node": "Telegram Pertanyaan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Pertanyaan",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Pertanyaan": {
+      "main": [
+        [
+          {
+            "node": "Mock Jawaban",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mock Jawaban": {
+      "main": [
+        [
+          {
+            "node": "Evaluator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluator": {
+      "main": [
+        [
+          {
+            "node": "Evaluator Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Model Evaluator": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Evaluator Prompt",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluator Prompt": {
+      "main": [
+        [
+          {
+            "node": "Telegram Hasil",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Hasil": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "201bda6d-a699-4440-aca2-20b2363789b7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "dc96f10ae7dc95d3c138575ba243a0a167923dbcb524841d451aadf9135d5fb3"
+  },
+  "nodeGroups": [],
+  "id": "08bXBjljSQdmRFGI",
+  "tags": []
+}
