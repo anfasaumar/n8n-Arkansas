@@ -1,0 +1,376 @@
+{
+  "name": "Tugas 8 - Analisis Feedback Karyawan AI",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "6efd3015-1916-4f56-9cfa-5b39d688d8b1",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        288,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://docs.google.com/spreadsheets/d/1QFjtZsrUS05Byqp2g3xQkfCqQ_p4NcWjJzQUGPBk9IY/edit?gid=0#gid=0",
+          "__regex": "https:\\/\\/(?:drive|docs)\\.google\\.com(?:\\/.*|)\\/d\\/([0-9a-zA-Z\\-_]+)(?:\\/.*|)"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1QFjtZsrUS05Byqp2g3xQkfCqQ_p4NcWjJzQUGPBk9IY/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "32c05ae9-5a0a-42ab-aa43-af8a44217af0",
+      "name": "Google Sheets - Get Rows",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        528,
+        336
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8uxkXgmYXd2qbKXh",
+          "name": "Google Sheets account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "908b3aed-1466-4957-b6f0-8e9eb13cd91e",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        768,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=ID Karyawan: {{ $json.employee_id }}\nFeedback: {{ $json.feedback }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "Kamu adalah HR Analyst yang menganalisis hasil survei kepuasan karyawan.\nUntuk setiap feedback karyawan, lakukan tiga hal:\n\n1. SENTIMENT: tentukan sentimen feedback, hanya salah satu dari: Positive, Neutral, Negative.\n   - Positive: pujian, apresiasi, atau kepuasan.\n   - Negative: keluhan, kritik, atau ketidakpuasan.\n   - Neutral: saran atau permintaan tanpa nada puas/tidak puas yang jelas.\n\n2. CATEGORY: kelompokkan masalah/topik ke SATU kategori, hanya salah satu dari:\n   - Salary: gaji, bonus, insentif, tunjangan.\n   - Facilities: alat kerja, ruang kerja, kantin, kebisingan, perangkat.\n   - Management: atasan, komunikasi, kebijakan, keputusan, target, rapat, hubungan antar tim/departemen.\n   - Workload: beban kerja, jam istirahat, kerumitan proses kerja.\n   - Training: pelatihan, mentoring, pengembangan karir.\n   - Other: jika tidak cocok dengan kategori di atas.\n\n3. ACTION_PLAN: tulis satu kalimat rencana tindak lanjut yang konkret dalam Bahasa Indonesia untuk tim HR/manajemen. Untuk feedback positif, tulis cara mempertahankan hal baik tersebut.\n\nBalas HANYA sesuai skema output yang diminta, tanpa teks tambahan."
+            }
+          ]
+        }
+      },
+      "id": "2aa45db6-011a-45ed-949e-2778c227227b",
+      "name": "Basic LLM Chain",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        1056,
+        464
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "98ad325d-84fc-4004-b9f1-94a007dc156e",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        992,
+        704
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "KpS0OsR984EL3Rr4",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"sentiment\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"Positive\",\n        \"Neutral\",\n        \"Negative\"\n      ],\n      \"description\": \"Sentimen feedback karyawan\"\n    },\n    \"category\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"Salary\",\n        \"Facilities\",\n        \"Management\",\n        \"Workload\",\n        \"Training\",\n        \"Other\"\n      ],\n      \"description\": \"Kategori masalah/topik feedback\"\n    },\n    \"action_plan\": {\n      \"type\": \"string\",\n      \"description\": \"Satu kalimat rencana tindak lanjut dalam Bahasa Indonesia\"\n    }\n  },\n  \"required\": [\n    \"sentiment\",\n    \"category\",\n    \"action_plan\"\n  ],\n  \"additionalProperties\": false\n}"
+      },
+      "id": "c6c9450d-4f63-45b8-92f4-77b7d27977ce",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        1200,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://docs.google.com/spreadsheets/d/1QFjtZsrUS05Byqp2g3xQkfCqQ_p4NcWjJzQUGPBk9IY/edit?gid=0#gid=0",
+          "__regex": "https:\\/\\/(?:drive|docs)\\.google\\.com(?:\\/.*|)\\/d\\/([0-9a-zA-Z\\-_]+)(?:\\/.*|)"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1QFjtZsrUS05Byqp2g3xQkfCqQ_p4NcWjJzQUGPBk9IY/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "employee_id": "={{ $('Loop Over Items').item.json.employee_id }}",
+            "sentiment": "={{ $json.output.sentiment }}",
+            "category": "={{ $json.output.category }}",
+            "action_plan": "={{ $json.output.action_plan }}"
+          },
+          "matchingColumns": [
+            "employee_id"
+          ],
+          "schema": [
+            {
+              "id": "employee_id",
+              "displayName": "employee_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "feedback",
+              "displayName": "feedback",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "sentiment",
+              "displayName": "sentiment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "action_plan",
+              "displayName": "action_plan",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "b7828dbc-eab0-4701-9886-11aefa4ac55e",
+      "name": "Google Sheets - Update Row",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1392,
+        464
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8uxkXgmYXd2qbKXh",
+          "name": "Google Sheets account 4"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "7f0a025a-40b5-4f2a-aa52-6e4204f23120",
+      "name": "Selesai",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 15
+      },
+      "id": "d219dea9-e3da-48e4-bae7-6bdb1fbf9d4d",
+      "name": "Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1392,
+        272
+      ],
+      "webhookId": "tugas8-wait-rate-limit"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets - Get Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets - Get Rows": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Selesai",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets - Update Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets - Update Row": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c96ca4fa-3e0f-4960-b1ca-fdc3d81f405f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "dc96f10ae7dc95d3c138575ba243a0a167923dbcb524841d451aadf9135d5fb3"
+  },
+  "nodeGroups": [],
+  "id": "wzSRGAWkvFz66EH7",
+  "tags": []
+}
