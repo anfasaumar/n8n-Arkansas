@@ -1,0 +1,300 @@
+{
+  "name": "Tugas 6 - Telegram AI Agent RAG",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "e138e86f-eeb1-478e-86d5-76963267705d",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -704,
+        128
+      ],
+      "webhookId": "b174e6ec-d035-4c64-8d04-04c001b405de",
+      "credentials": {
+        "telegramApi": {
+          "id": "uedJmGaKyT1ycrSN",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f1000000-0000-4000-8000-000000000001",
+              "name": "chat",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            },
+            {
+              "id": "f1000000-0000-4000-8000-000000000002",
+              "name": "chat_id",
+              "value": "={{ $json.message.chat.id }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "95f2773a-8131-4945-b078-ef2e3ed21057",
+      "name": "Edit Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -480,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1000000-0000-4000-8000-000000000001",
+              "leftValue": "={{ $json.chat }}",
+              "rightValue": "/\\b(seo|sem|email marketing|clv|customer lifetime value|awareness|marketing funnel|webinar|b2b)\\b/i",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "30e7d9a1-43b6-44e4-af9c-fea565ba3d06",
+      "name": "Pesan Relevan?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -256,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Edit Fields').item.json.chat_id }}",
+        "text": "Halo! Saya hanya bisa menjawab pertanyaan seputar pemasaran digital.\n\nCoba tanyakan, misalnya:\n- Apa perbedaan SEO dan SEM?\n- Bagaimana mengukur keberhasilan Email Marketing?\n- Apa itu Customer Lifetime Value (CLV)?\n- Strategi apa yang efektif untuk tahap Awareness pada Marketing Funnel?\n- Apa peran Webinar dalam B2B Marketing?",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "35b0808e-9212-4709-97d6-91e0acf1a6fb",
+      "name": "Kirim Panduan",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -80,
+        432
+      ],
+      "webhookId": "a5744b1c-aeab-4e56-8683-a2612dfb1d74",
+      "credentials": {
+        "telegramApi": {
+          "id": "uedJmGaKyT1ycrSN",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chat }}",
+        "options": {
+          "systemMessage": "Kamu adalah Asisten Spesialis Pemasaran Digital.\n\nAturan wajib:\n1. Setiap menerima pertanyaan, SELALU gunakan tool Google Sheets (Cari Data FAQ) untuk mencari jawabannya terlebih dahulu.\n2. Jawab HANYA berdasarkan data yang ditemukan di Google Sheets (kolom Pertanyaan, Kategori, Jawaban Singkat, Metrik Kinerja Utama, dan Link Sumber Belajar).\n3. DILARANG menjawab dari pengetahuan umum model, menebak, atau menambahkan informasi yang tidak ada di data.\n4. Jika jawaban tidak ditemukan di Google Sheets, balas persis: \"Maaf, informasi tersebut belum tersedia di basis pengetahuan saya.\"\n5. Sertakan Metrik Kinerja Utama dan Link Sumber Belajar dari data bila tersedia.\n6. Jawab dalam Bahasa Indonesia yang singkat, jelas, dan ramah.\n7. Tulis jawaban sebagai teks polos tanpa format Markdown (jangan pakai tanda *, _, # atau backtick)."
+        }
+      },
+      "id": "f1ade878-854b-4fc8-a42a-e2774b58df44",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "executeOnce": false,
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.8-flash",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "1789bda6-49c3-45d6-9705-6a78486efe79",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        240
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "GFdgYcC7dSAyNAkn",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1EIUj7gyQmp6PojzdX9mbAP4lHwtQlXhrWpUXZiqM8U8",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1EIUj7gyQmp6PojzdX9mbAP4lHwtQlXhrWpUXZiqM8U8/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "d46bc5eb-10be-45a2-acf5-e945572010bb",
+      "name": "Cari Data FAQ",
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        96,
+        240
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Ra8OutKbZGKnzWsg",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Edit Fields').item.json.chat_id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "72530bd7-7ac5-40b2-9704-74f7ef351bfb",
+      "name": "Kirim Jawaban",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        352,
+        0
+      ],
+      "webhookId": "b60efffa-07f2-4b72-a5a2-fe3d98879d6a",
+      "credentials": {
+        "telegramApi": {
+          "id": "uedJmGaKyT1ycrSN",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Pesan Relevan?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pesan Relevan?": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Kirim Panduan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Kirim Jawaban",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cari Data FAQ": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "dbb343b5-b925-49f2-af5a-a99d083fe8e2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "dc96f10ae7dc95d3c138575ba243a0a167923dbcb524841d451aadf9135d5fb3"
+  },
+  "nodeGroups": [],
+  "id": "jnDOAoy7QCI2GdlN",
+  "tags": []
+}
